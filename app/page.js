@@ -9,6 +9,9 @@ import QuestionSummary from "./components/QuestionSummary";
 import { buildArithmeticExpression, getBinaryConversion } from "./lib/operations";
 import NewsSection from "./components/NewsSection";
 
+let sudokuGameBoard = [];
+let sudokuSolvedBoard = [];
+
 const NIVELES_PREGUNTA = ["Bajo", "Normal", "Avanzado", "Experto"];
 
 const randomQuestionType = () => {

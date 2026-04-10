@@ -114,7 +114,7 @@ export default function SudokuGame() {
                 key={`cell-${r}-${c}`}
                 type="number"
                 inputMode="numeric"
-                className={`sudoku-input ${isFixed ? "" : "fixed"}`}
+                className={`sudoku-input ${isFixed ? "" : "fixed-value"}`}
                 value={val === 0 ? "" : val}
                 readOnly={sudokuSolvedBoard[r][c] !== val && val !== 0}
                 onChange={(e) => handleInputChange(r, c, e.target.value)}

@@ -87,10 +87,20 @@ export default function NewsSection() {
               />
             )}
             <div className="news-item-content">
+              {article.pubDate && (
+                <p className="news-item-date">
+                  {new Date(article.pubDate).toLocaleString("es-ES", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }).replace(",", "")}
+                </p>
+              )}
               <a href={article.link} target="_blank" rel="noreferrer noopener" className="news-item-title">
                 {article.title || "Título no disponible"}
               </a>
-              {article.pubDate && <p className="news-item-date">{article.pubDate}</p>}
               {article.description && <p className="news-item-description">{article.description}</p>}
             </div>
           </article>

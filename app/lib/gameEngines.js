@@ -123,7 +123,6 @@ function renderUI() {
       if (val !== 0) {
         input.value = val;
         input.readOnly = true;
-        input.classList.add("fixed");
       } else {
         input.addEventListener("input", () => validateInput(input, r, c));
       }
