@@ -32,10 +32,14 @@ export default function TriviaSection({
             onChange={(event) => onTopicChange(event.target.value)}
           />
         </div>
+        <br/>
         <div className="question-row">
           <button className="btn" type="button" onClick={onGenerateQuestion} disabled={isLoading}>
             {isLoading ? "Generando..." : "Generar pregunta"}
           </button>
+        </div>
+        <br/>
+        <div className="question-row">
           <select
             value={questionLevel}
             onChange={(event) => onLevelChange(Number(event.target.value))}

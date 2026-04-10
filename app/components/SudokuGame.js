@@ -113,10 +113,17 @@ export default function SudokuGame() {
               <input
                 key={`cell-${r}-${c}`}
                 type="number"
+                inputMode="numeric"
                 className={`sudoku-input ${isFixed ? "" : "fixed"}`}
                 value={val === 0 ? "" : val}
                 readOnly={sudokuSolvedBoard[r][c] !== val && val !== 0}
                 onChange={(e) => handleInputChange(r, c, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                  }
+                }}
+                onWheel={(e) => e.preventDefault()}
                 style={inputStyle}
                 min="1"
                 max="9"

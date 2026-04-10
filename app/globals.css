@@ -106,6 +106,11 @@ body.dark-mode select {
   color: var(--dark-text-light);
 }
 
+body.dark-mode select option {
+  background: var(--dark-bg);
+  color: var(--dark-text-light);
+}
+
 body.dark-mode input::placeholder,
 body.dark-mode textarea::placeholder {
   color: var(--dark-placeholder);
@@ -211,62 +216,56 @@ body.dark-mode .sidebar-button.active {
 }
 
 .theme-switch-wrapper {
-  display: flex;
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 50;
+}
+
+.theme-toggle-button {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin-top: auto;
-}
-
-.theme-label {
-  font-size: 0.95rem;
-}
-
-.theme-switch {
-  position: relative;
-  width: 50px;
-  height: 26px;
-  display: inline-block;
-}
-
-.theme-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background-color: #ccc;
+  gap: 8px;
+  padding: 10px 14px;
   border-radius: 999px;
-  transition: 0.2s;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--btn-bg);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  box-shadow: var(--shadow);
 }
 
-.slider::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 4px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: white;
-  transition: 0.2s;
+.theme-toggle-button:hover {
+  transform: translateY(-1px);
+  background: var(--btn-hover);
 }
 
-input:checked + .slider {
-  background-color: var(--switch-active);
+.theme-toggle-button.dark {
+  background: var(--dark-btn-bg);
+  color: var(--dark-text-light);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
-input:checked + .slider::before {
-  transform: translateX(24px);
+.theme-toggle-button.dark:hover {
+  background: var(--dark-btn-hover);
 }
 
 .main-content {
   flex: 1;
   padding: 24px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-content > * {
+  text-align: center;
+  width: 50vw;
+  max-width: 1200px;
 }
 
 .page-title {
@@ -281,7 +280,6 @@ input:checked + .slider::before {
 .input,
 textarea,
 select {
-  width: 100%;
   max-width: 100%;
   padding: 14px 16px;
   border-radius: 12px;
@@ -289,6 +287,14 @@ select {
   background: rgba(0, 0, 0, 0.05);
   color: var(--text-main);
   font-size: 1rem;
+}
+
+textarea {
+  width: 100%;
+}
+
+select {
+  width: fit-content;
 }
 
 textarea {
@@ -333,6 +339,7 @@ textarea {
 }
 
 .question-row {
+  justify-content: center;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -477,9 +484,24 @@ textarea {
 }
 
 .game-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 24px;
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 120px;
+  min-width: 90px;
+  width: 100%;
+  gap: 10px;
 }
 
 .game-card img {
@@ -492,10 +514,7 @@ textarea {
 #juegos-screen {
   display: grid;
   gap: 24px;
-}
-
-#game-wrapper {
-  display: flex;
+  justify-items: center;
   justify-content: center;
 }
 
@@ -505,21 +524,41 @@ textarea {
   max-width: 900px;
 }
 
-#sudoku-grid {
+.sudoku-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.sudoku-grid {
   display: grid;
   grid-template-columns: repeat(9, 40px);
   grid-template-rows: repeat(9, 40px);
+  gap: 2px;
   border: var(--games-minesweeper-border-thick, 3px) solid var(--sudoku-border);
+  padding: 4px;
   margin-bottom: 20px;
+  background: white;
 }
 
 .sudoku-input {
   width: 40px;
   height: 40px;
+  box-sizing: border-box;
   text-align: center;
   font-size: 1.2rem;
   border: 1px solid var(--sudoku-input-border);
   outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.sudoku-input::-webkit-outer-spin-button,
+.sudoku-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .sudoku-input.fixed {
@@ -530,9 +569,78 @@ textarea {
   background-color: var(--sudoku-input-focus);
 }
 
+.board,
 #board {
   display: grid;
   user-select: none;
+}
+
+.minesweeper-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.game-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 104px;
+}
+
+.indicator-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.timer,
+.mine-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--games-minesweeper-panel);
+  border: 1px solid var(--games-minesweeper-cell-border-dark);
+  font-family: "Jersey 10", sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+}
+
+.difficulty-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.diff-btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--btn-bg);
+  cursor: pointer;
+}
+
+.diff-btn.active {
+  background: var(--btn-hover);
 }
 
 .cell {

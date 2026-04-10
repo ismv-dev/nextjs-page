@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 const DIFFICULTIES = {
-  easy: { rows: 9, cols: 9, mines: 10 },
+  easy: { rows: 8, cols: 8, mines: 10 },
   medium: { rows: 16, cols: 16, mines: 40 },
-  hard: { rows: 16, cols: 30, mines: 99 },
+  hard: { rows: 32, cols: 32, mines: 99 },
 };
 
 export default function MinesweeperGame() {
@@ -59,12 +59,41 @@ export default function MinesweeperGame() {
       [all[i], all[j]] = [all[j], all[i]];
     }
 
-    const newMineSet = new Set();
+    const hasAdjacentMine = (idx, mineIndices) => {
+      const r = Math.floor(idx / cols);
+      const c = idx % cols;
+      for (let dr = -1; dr <= 1; dr += 1) {
+        for (let dc = -1; dc <= 1; dc += 1) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            if (mineIndices.has(nr * cols + nc)) return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    const selectedMines = new Set();
+    for (const idx of all) {
+      if (selectedMines.size >= mines) break;
+      if (!hasAdjacentMine(idx, selectedMines)) {
+        selectedMines.add(idx);
+      }
+    }
+
+    if (selectedMines.size < mines) {
+      for (const idx of all) {
+        if (selectedMines.size >= mines) break;
+        selectedMines.add(idx);
+      }
+    }
+
+    const newMineSet = new Set(selectedMines);
     const newBoard = currentBoard.map(row => [...row]);
 
-    for (let i = 0; i < mines; i += 1) {
-      const idx = all[i];
-      newMineSet.add(idx);
+    newMineSet.forEach((idx) => {
       const r = Math.floor(idx / cols);
       const c = idx % cols;
       newBoard[r][c] = -1;
@@ -77,10 +106,9 @@ export default function MinesweeperGame() {
           }
         }
       }
-    }
+    });
 
-    setMineSet(newMineSet);
-    setBoard(newBoard);
+    return { newBoard, newMineSet };
   };
 
   const flood = (r, c, currentRevealed, currentBoard) => {
@@ -108,12 +136,28 @@ export default function MinesweeperGame() {
     if (timerRef.current) clearInterval(timerRef.current);
     setGameState("lost");
 
-    // Reveal all mines with animation
-    mineSet.forEach((idx, index) => {
+    setRevealed(prev => {
+      const newRevealed = prev.map(row => [...row]);
+      newRevealed[r][c] = true;
+      return newRevealed;
+    });
+
+    const selectedIdx = r * config.cols + c;
+    const otherMines = Array.from(mineSet).filter(idx => idx !== selectedIdx);
+
+    const shuffle = (array) => {
+      const result = [...array];
+      for (let i = result.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+    };
+
+    const revealOrder = shuffle(otherMines);
+    revealOrder.forEach((idx, index) => {
       const mr = Math.floor(idx / config.cols);
       const mc = idx % config.cols;
-      if (mr === r && mc === c) return;
-
       setTimeout(() => {
         setRevealed(prev => {
           const newRevealed = prev.map(row => [...row]);
@@ -122,7 +166,7 @@ export default function MinesweeperGame() {
           }
           return newRevealed;
         });
-      }, 60 * (index + 1));
+      }, 25 * (index + 1));
     });
   };
 
@@ -145,9 +189,14 @@ export default function MinesweeperGame() {
     if (gameState === "won" || gameState === "lost") return;
     if (flagged[r][c] || revealed[r][c]) return;
 
+    let currentBoard = board;
+
     if (firstClick) {
       setFirstClick(false);
-      placeMines(r, c, board);
+      const { newBoard, newMineSet } = placeMines(r, c, board);
+      setMineSet(newMineSet);
+      setBoard(newBoard);
+      currentBoard = newBoard;
       setGameState("playing");
       timerRef.current = setInterval(() => {
         setTimer(prev => {
@@ -161,12 +210,12 @@ export default function MinesweeperGame() {
       }, 1000);
     }
 
-    if (board[r][c] === -1) {
+    if (currentBoard[r][c] === -1) {
       revealMine(r, c);
       return;
     }
 
-    const newRevealed = flood(r, c, revealed, board);
+    const newRevealed = flood(r, c, revealed, currentBoard);
     setRevealed(newRevealed);
     checkWin(newRevealed);
   };
@@ -235,7 +284,10 @@ export default function MinesweeperGame() {
   return (
     <div className="minesweeper-game">
       <div className="game-header">
-        <div className="timer">{fmt(timer)}</div>
+        <div className="indicator">
+          <span className="indicator-label">Time</span>
+          <span className="timer">{fmt(timer)}</span>
+        </div>
         <div className="difficulty-buttons">
           {Object.keys(DIFFICULTIES).map((diff) => (
             <button
@@ -247,8 +299,11 @@ export default function MinesweeperGame() {
             </button>
           ))}
         </div>
-        <div className="mine-count">
-          {fmt(config.mines - flagged.flat().filter(f => f).length)}
+        <div className="indicator">
+          <span className="indicator-label">Mines</span>
+          <span className="mine-count">
+            {fmt(config.mines - flagged.flat().filter(f => f).length)}
+          </span>
         </div>
       </div>
 
@@ -257,7 +312,7 @@ export default function MinesweeperGame() {
         ref={boardRef}
         style={{
           gridTemplateColumns: `repeat(${config.cols}, 1fr)`,
-          display: gameState === "idle" ? "none" : "grid"
+          display: "grid"
         }}
       >
         {board.map((row, r) =>

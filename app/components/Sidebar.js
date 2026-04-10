@@ -37,15 +37,13 @@ export default function Sidebar({ view, theme, onViewChange, onThemeChange }) {
         </button>
       </nav>
       <div className="theme-switch-wrapper">
-        <span className="theme-label">Modo oscuro</span>
-        <label className="theme-switch">
-          <input
-            type="checkbox"
-            checked={theme === "dark"}
-            onChange={() => onThemeChange(theme === "dark" ? "light" : "dark")}
-          />
-          <span className="slider round" />
-        </label>
+        <button
+          type="button"
+          className={`theme-toggle-button ${theme}`}
+          onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
+        >
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
       </div>
     </aside>
   );
