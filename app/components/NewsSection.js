@@ -3,40 +3,59 @@
 import { useEffect, useState } from "react";
 
 const NEWS_CATEGORIES = [
+  "Todas",
   "Corporativo",
-  "Cultura",
-  "Deportes",
-  "Economia",
-  "Entretencion",
-  "Mundo",
-  "Pais",
-  "Sociedad",
-  "Tecnologia",
+  "Cultura"
 ];
 
 export default function NewsSection() {
-  const [category, setCategory] = useState("Corporativo");
+  const [category, setCategory] = useState("Todas");
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
+    let retryCount = 0;
+    let retryTimeout;
+
     const fetchNews = async () => {
       setLoading(true);
+      setSyncing(false);
       setError("");
       try {
-        const response = await fetch(`/api/news?category=${encodeURIComponent(category)}`, {
+        // Construir query de categoría
+        const query = category === "Todas" ? "" : `category=${encodeURIComponent(category)}`;
+        const response = await fetch(`/api/news?${query}`, {
           signal: controller.signal,
         });
 
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
-          throw new Error(body.error || "No se pudo cargar la noticia");
+          
+          // Si requiere sincronización, mostrar loading de sincronización
+          if (body.requiresSync && retryCount < 3) {
+            setSyncing(true);
+            // Reintentar después de mostrar el estado de sincronización
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              if (!controller.signal.aborted) {
+                fetchNews();
+              }
+            }, 2000);
+            return;
+          }
+          
+          throw new Error(body.error || "No se pudo cargar las noticias");
         }
 
         const data = await response.json();
         setArticles(data.items || []);
+        setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-ES"));
+        setSyncing(false);
+        retryCount = 0;
       } catch (fetchError) {
         if (fetchError.name !== "AbortError") {
           setError(fetchError.message || "Error al obtener noticias");
@@ -48,7 +67,10 @@ export default function NewsSection() {
     };
 
     fetchNews();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, [category]);
 
   return (
@@ -60,6 +82,7 @@ export default function NewsSection() {
           onChange={(event) => setCategory(event.target.value)}
           className="news-select"
           aria-label="Seleccionar tipo de noticia"
+          disabled={loading || syncing}
         >
           {NEWS_CATEGORIES.map((item) => (
             <option key={item} value={item}>
@@ -69,10 +92,60 @@ export default function NewsSection() {
         </select>
       </div>
 
-      {loading && <p>Cargando noticias...</p>}
-      {error && <p className="error-text">{error}</p>}
-      {!loading && !error && articles.length === 0 && (
-        <p>No se encontraron noticias para esta categoría.</p>
+      {lastUpdate && (
+        <p style={{ fontSize: "0.85rem", color: "#666", marginBottom: "10px" }}>
+          Última actualización: {lastUpdate}
+        </p>
+      )}
+
+      {syncing && (
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          <div style={{
+            display: "inline-block",
+            width: "30px",
+            height: "30px",
+            border: "4px solid #f3f3f3",
+            borderTop: "4px solid #3498db",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }} />
+          <p style={{ marginTop: "10px", color: "#3498db" }}>
+            Sincronizando noticias de la web...
+          </p>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
+
+      {loading && !syncing && (
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          <div style={{
+            display: "inline-block",
+            width: "30px",
+            height: "30px",
+            border: "4px solid #f3f3f3",
+            borderTop: "4px solid #2ecc71",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+          }} />
+          <p style={{ marginTop: "10px", color: "#2ecc71" }}>Cargando noticias...</p>
+        </div>
+      )}
+
+      {error && !loading && !syncing && (
+        <p className="error-text" style={{ textAlign: "center", padding: "15px", backgroundColor: "#ffe6e6", borderRadius: "5px" }}>
+          ⚠️ {error}
+        </p>
+      )}
+
+      {!loading && !syncing && !error && articles.length === 0 && (
+        <p style={{ textAlign: "center", padding: "20px", color: "#999" }}>
+          No se encontraron noticias{category !== "Todas" ? ` para ${category}` : ""}.
+        </p>
       )}
 
       <div className="news-list">
@@ -87,6 +160,20 @@ export default function NewsSection() {
               />
             )}
             <div className="news-item-content">
+              {article.category && (
+                <span style={{ 
+                  display: "inline-block",
+                  fontSize: "0.75rem",
+                  padding: "4px 8px",
+                  backgroundColor: "#e8f4f8",
+                  borderRadius: "3px",
+                  color: "#0066cc",
+                  marginBottom: "8px",
+                  fontWeight: "500"
+                }}>
+                  {article.category}
+                </span>
+              )}
               {article.pubDate && (
                 <p className="news-item-date">
                   {new Date(article.pubDate).toLocaleString("es-ES", {

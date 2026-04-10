@@ -2,16 +2,23 @@
   "name": "legacy-nextjs-page",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "node lib/initDb.js && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:init": "node lib/initDb.js",
+    "db:test": "node lib/testDb.js",
+    "db:sync": "curl -X POST http://localhost:3000/api/cron/sync-news",
+    "db:docs": "cat DATABASE_QUERIES.sql"
   },
   "dependencies": {
     "@google/genai": "latest",
+    "@neondatabase/serverless": "^1.0.2",
+    "dotenv": "^17.4.1",
     "next": "latest",
-    "pg": "^8.11.3",
+    "pg": "^8.20.0",
     "react": "latest",
     "react-dom": "latest"
   },
