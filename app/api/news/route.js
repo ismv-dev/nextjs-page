@@ -1,17 +1,6 @@
 import { NextResponse } from "next/server";
 
-const NEWS_XML = {
-  Corporativo: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_16___1.xml",
-  Cultura: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_5___1.xml",
-  Deportes: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_1___1.xml",
-  Economia: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_6___1.xml",
-  Entretencion: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_4___1.xml",
-  Mundo: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_2___1.xml",
-  Pais: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_3___1.xml",
-  Sociedad: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_7___1.xml",
-  Tecnologia: "https://www.cooperativa.cl/noticias/site/tax/port/all/rss_8___1.xml",
-};
-
+const NEWS_XMLS = {'Corporativo': ['https://cooperativa.cl/noticias/site/tax/port/all/rss_16___1.xml'], 'Cultura': ['https://cooperativa.cl/noticias/site/tax/port/all/rss_5___1.xml']}
 const decodeHtmlEntities = (value) => {
   return value
     .replace(/&amp;/g, "&")
@@ -90,11 +79,11 @@ const parseRssItems = (xmlText) => {
 export async function GET(request) {
   try {
     const category = request.nextUrl.searchParams.get("category") || "Corporativo";
-    if (!NEWS_XML[category]) {
+    if (!NEWS_XMLS[category]) {
       return NextResponse.json({ error: "Categoría no válida" }, { status: 400 });
     }
 
-    const response = await fetch(NEWS_XML[category], { cache: "no-store" });
+    const response = await fetch(NEWS_XMLS[category], { cache: "no-store" });
     if (!response.ok) {
       return NextResponse.json({ error: "No se pudo cargar el feed RSS" }, { status: 502 });
     }
