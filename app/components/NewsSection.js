@@ -89,10 +89,7 @@ export default function NewsSection() {
     setOffset(0);
     setHasMore(true);
     
-    if (!isInitialFetchDone.current) {
-      fetchNews(0, true, controller.signal);
-      isInitialFetchDone.current = true;
-    }
+    fetchNews(0, true, controller.signal);
 
     return () => controller.abort();
   }, [selectedCategories, startDate, endDate]);
