@@ -931,7 +931,7 @@ body.dark-mode .sidebar-button.active {
   }
 
   .main-content > * {
-    width: 100vw;
+    width: 100%;
   }
 
   .sidebar {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function NewsSection() {
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -21,82 +21,80 @@ export default function NewsSection() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const isInitialFetchDone = useRef(false);
+  const fetchingRef = useRef(false);
 
   const LIMIT = 10;
 
+  const fetchNews = async (currentOffset, isInitial, signal) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
+    if (isInitial) setLoading(true);
+    if (isInitial) {
+      setSyncing(false);
+      setError("");
+    }
+    try {
+      const categoryQuery = selectedCategories.length > 0 
+        ? `categories=${encodeURIComponent(selectedCategories.join(','))}` 
+        : "";
+      const dateQuery = `startDate=${startDate}&endDate=${endDate}`;
+      const query = [categoryQuery, dateQuery].filter(Boolean).join('&');
+      
+      const response = await fetch(`/api/news?${query}&limit=${LIMIT}&offset=${currentOffset}`, {
+        signal: signal,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        
+        if (body.requiresSync) {
+          setSyncing(true);
+          return { syncing: true };
+        }
+        
+        throw new Error(body.error || "No se pudo cargar las noticias");
+      }
+
+      const data = await response.json();
+      const newArticles = data.items || [];
+      
+      if (data.allCategories && categories.length === 1) {
+        setCategories(data.allCategories);
+      }
+      
+      setArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
+      const hasMoreArticles = newArticles.length === LIMIT;
+      setHasMore(hasMoreArticles);
+      setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-ES"));
+      setSyncing(false);
+      
+      return { syncing: false };
+    } catch (fetchError) {
+      if (fetchError.name !== "AbortError") {
+        setError(fetchError.message || "Error al obtener noticias");
+        if (isInitial) setArticles([]);
+      }
+      return { error: true };
+    } finally {
+      setLoading(false);
+      fetchingRef.current = false;
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
-    let retryCount = 0;
-    let retryTimeout;
-
-    const fetchNews = async (currentOffset = 0, isInitial = false) => {
-      if (isInitial) setLoading(true);
-      if (isInitial) {
-        setSyncing(false);
-        setError("");
-      }
-      try {
-        const categoryQuery = selectedCategories.length > 0 
-          ? `categories=${encodeURIComponent(selectedCategories.join(','))}` 
-          : "";
-        const dateQuery = `startDate=${startDate}&endDate=${endDate}`;
-        const query = [categoryQuery, dateQuery].filter(Boolean).join('&');
-        
-        const response = await fetch(`/api/news?${query}&limit=${LIMIT}&offset=${currentOffset}`, {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          
-          if (body.requiresSync && retryCount < 3) {
-            setSyncing(true);
-            retryCount++;
-            retryTimeout = setTimeout(() => {
-              if (!controller.signal.aborted) {
-                fetchNews(currentOffset, isInitial);
-              }
-            }, 2000);
-            return;
-          }
-          
-          throw new Error(body.error || "No se pudo cargar las noticias");
-        }
-
-        const data = await response.json();
-        const newArticles = data.items || [];
-        
-        if (data.allCategories && categories.length === 1) {
-          setCategories(data.allCategories);
-        }
-        
-        setArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
-        setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-ES"));
-        setSyncing(false);
-        retryCount = 0;
-
-        if (currentOffset) {
-          setOffset(prev => prev + LIMIT);
-          fetchNews(currentOffset + LIMIT, false);
-        }
-      } catch (fetchError) {
-        if (fetchError.name !== "AbortError") {
-          setError(fetchError.message || "Error al obtener noticias");
-          if (isInitial) setArticles([]);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    
     setOffset(0);
     setHasMore(true);
-    fetchNews(0, true);
+    
+    if (!isInitialFetchDone.current) {
+      fetchNews(0, true, controller.signal);
+      isInitialFetchDone.current = true;
+    }
 
-    return () => {
-      controller.abort();
-      if (retryTimeout) clearTimeout(retryTimeout);
-    };
+    return () => controller.abort();
   }, [selectedCategories, startDate, endDate]);
 
   const toggleCategory = (cat) => {
@@ -104,6 +102,28 @@ export default function NewsSection() {
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
     );
   };
+
+  useEffect(() => {
+    if (!hasMore || loading || syncing) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !fetchingRef.current) {
+          setOffset(prev => {
+            const nextOffset = prev + LIMIT;
+            fetchNews(nextOffset, false, undefined);
+            return nextOffset;
+          });
+        }
+      },
+      { rootMargin: "800px" }
+    );
+
+    const sentinel = document.getElementById("news-sentinel");
+    if (sentinel) observer.observe(sentinel);
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, syncing]);
 
   return (
     <div className="trivia-card">
@@ -278,6 +298,7 @@ export default function NewsSection() {
             </div>
           </article>
         ))}
+        <div id="news-sentinel" style={{ height: "10px" }} />
       </div>
     </div>
   );
