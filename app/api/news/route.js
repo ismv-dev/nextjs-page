@@ -1,16 +1,23 @@
 import { NextResponse } from "next/server";
-import { getNewsFromDatabase, syncNewsToDatabase, initializeDatabase } from "@/lib/newsSync";
-
-const NEWS_CATEGORIES = ["Todas", "Corporativo", "Cultura"];
+import { getNewsFromDatabase, syncNewsToDatabase, initializeDatabase, getAvailableCategories } from "@/lib/newsSync";
 
 export async function GET(request) {
   try {
-    const category = request.nextUrl.searchParams.get("category");
-    const syncParam = request.nextUrl.searchParams.get("sync") === "true";
+    const newsCategories = getAvailableCategories();
+    const { searchParams } = request.nextUrl;
+    const categories = searchParams.get("categories") ? decodeURIComponent(searchParams.get("categories")).split(",") : null;
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const offset = parseInt(searchParams.get("offset") || "0");
+    const syncParam = searchParams.get("sync") === "true";
 
-    // Validar categoría si se proporciona
-    if (category && !NEWS_CATEGORIES.includes(category)) {
-      return NextResponse.json({ error: "Categoría no válida" }, { status: 400 });
+    // Validar categorías si se proporcionan
+    if (categories && categories.length > 0) {
+      const invalidCategories = categories.filter(cat => !newsCategories.includes(cat));
+      if (invalidCategories.length > 0) {
+        return NextResponse.json({ error: "Una o más categorías no son válidas" }, { status: 400 });
+      }
     }
 
     // Inicializar BD si es necesario
@@ -27,22 +34,17 @@ export async function GET(request) {
     let requiresSync = false;
 
     try {
-      items = await getNewsFromDatabase(category, 100);
+      items = await getNewsFromDatabase({ categories, startDate, endDate }, limit, offset);
       fromDatabase = items.length > 0;
     } catch (dbError) {
       console.error("Error obteniendo noticias de BD:", dbError);
     }
 
     // Si no hay datos en BD o se solicita sincronización, sincronizar en el momento
-    if (items.length === 0 || syncParam) {
-      try {
-        if (category && category !== NEWS_CATEGORIES[0]) {
-          // Sincronizar solo la categoría solicitada
-          await syncNewsToDatabase(category);
-        } else {
-          // Sincronizar todas las categorías reales (excluyendo "Todas")
-          const realCategories = NEWS_CATEGORIES.filter(cat => cat !== "Todas");
-          for (const cat of realCategories) {
+    if (items.length === 0 && offset === 0 || syncParam) {
+        if (categories) {
+          // Sincronizar todas las categorías seleccionadas
+          for (const cat of categories) {
             try {
               await syncNewsToDatabase(cat);
             } catch (error) {
@@ -52,24 +54,24 @@ export async function GET(request) {
         }
 
         // Obtener datos sincronizados
-        items = await getNewsFromDatabase(category || null, 100);
-        fromDatabase = true;
-        requiresSync = false;
-      } catch (syncError) {
-        console.error("Error sincronizando noticias:", syncError);
-        requiresSync = true;
+        try {
+          items = await getNewsFromDatabase({ categories, startDate, endDate }, limit, offset);
+          fromDatabase = true;
+          requiresSync = false;
+        } catch (syncError) {
+          console.error("Error sincronizando noticias:", syncError);
+          requiresSync = true;
 
-        if (items.length === 0) {
-          return NextResponse.json(
-            {
-              error: "No se pudieron cargar las noticias. Intente nuevamente.",
-              requiresSync: true,
-              category: category || "todas",
-            },
-            { status: 502 }
-          );
+          if (items.length === 0 && offset === 0) {
+            return NextResponse.json(
+              {
+                error: "No se pudieron cargar las noticias. Intente nuevamente.",
+                requiresSync: true,
+              },
+              { status: 502 }
+            );
+          }
         }
-      }
     }
 
     // Transformar datos de BD para que coincidan con el formato esperado
@@ -81,18 +83,18 @@ export async function GET(request) {
       title: item.title,
       description: item.description || "",
       link: item.link,
-      pubDate: item.pub_date,
+      timestamp: item.timestamp,
       imageUrl: item.image_url || "",
       category: item.category,
     }));
 
     return NextResponse.json({
-      category: category || "todas",
+      allCategories: newsCategories,
       items: formattedItems,
       fromDatabase,
       requiresSync,
       count: formattedItems.length,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error("Error en API /news:", error);

@@ -2,47 +2,59 @@
 
 import { useEffect, useState } from "react";
 
-const NEWS_CATEGORIES = [
-  "Todas",
-  "Corporativo",
-  "Cultura"
-];
-
 export default function NewsSection() {
-  const [category, setCategory] = useState("Todas");
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [categories, setCategories] = useState(["Todas"]);
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 3);
+    return date.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [categorySearch, setCategorySearch] = useState("");
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  const LIMIT = 10;
 
   useEffect(() => {
     const controller = new AbortController();
     let retryCount = 0;
     let retryTimeout;
 
-    const fetchNews = async () => {
-      setLoading(true);
-      setSyncing(false);
-      setError("");
+    const fetchNews = async (currentOffset = 0, isInitial = false) => {
+      if (isInitial) setLoading(true);
+      if (isInitial) {
+        setSyncing(false);
+        setError("");
+      }
       try {
-        // Construir query de categoría
-        const query = category === "Todas" ? "" : `category=${encodeURIComponent(category)}`;
-        const response = await fetch(`/api/news?${query}`, {
+        const categoryQuery = selectedCategories.length > 0 
+          ? `categories=${encodeURIComponent(selectedCategories.join(','))}` 
+          : "";
+        const dateQuery = `startDate=${startDate}&endDate=${endDate}`;
+        const query = [categoryQuery, dateQuery].filter(Boolean).join('&');
+        
+        const response = await fetch(`/api/news?${query}&limit=${LIMIT}&offset=${currentOffset}`, {
           signal: controller.signal,
         });
 
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
           
-          // Si requiere sincronización, mostrar loading de sincronización
           if (body.requiresSync && retryCount < 3) {
             setSyncing(true);
-            // Reintentar después de mostrar el estado de sincronización
             retryCount++;
             retryTimeout = setTimeout(() => {
               if (!controller.signal.aborted) {
-                fetchNews();
+                fetchNews(currentOffset, isInitial);
               }
             }, 2000);
             return;
@@ -52,44 +64,117 @@ export default function NewsSection() {
         }
 
         const data = await response.json();
-        setArticles(data.items || []);
+        const newArticles = data.items || [];
+        
+        if (data.allCategories && categories.length === 1) {
+          setCategories(data.allCategories);
+        }
+        
+        setArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
         setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-ES"));
         setSyncing(false);
         retryCount = 0;
+
+        if (currentOffset) {
+          setOffset(prev => prev + LIMIT);
+          fetchNews(currentOffset + LIMIT, false);
+        }
       } catch (fetchError) {
         if (fetchError.name !== "AbortError") {
           setError(fetchError.message || "Error al obtener noticias");
-          setArticles([]);
+          if (isInitial) setArticles([]);
         }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNews();
+    setOffset(0);
+    setHasMore(true);
+    fetchNews(0, true);
+
     return () => {
       controller.abort();
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, [category]);
+  }, [selectedCategories, startDate, endDate]);
+
+  const toggleCategory = (cat) => {
+    setSelectedCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
 
   return (
     <div className="trivia-card">
       <div className="page-title-row">
         <h1 className="page-title">Noticias</h1>
-        <select
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-          className="news-select"
-          aria-label="Seleccionar tipo de noticia"
-          disabled={loading || syncing}
-        >
-          {NEWS_CATEGORIES.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+        <div className="news-filters" style={{ display: "flex", gap: "10px" }}>
+          <div style={{ position: "relative" }}>
+            <button 
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className="filter-btn"
+              style={{ padding: "8px 12px", borderRadius: "5px", border: "1px solid #ccc", cursor: "pointer", backgroundColor: "white" }}
+            >
+              📅 Fecha
+            </button>
+            {showDateFilter && (
+              <div style={{ 
+                position: "absolute", right: 0, top: "40px", zIndex: 10, 
+                backgroundColor: "white", padding: "10px", border: "1px solid #ccc", borderRadius: "5px",
+                display: "flex", flexDirection: "column", gap: "5px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)" 
+              }}>
+                <label style={{ fontSize: "0.8rem" }}>Desde: 
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ marginLeft: "5px" }} />
+                </label>
+                <label style={{ fontSize: "0.8rem" }}>Hasta: 
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ marginLeft: "5px" }} />
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div style={{ position: "relative" }}>
+            <button 
+              onClick={() => setShowCategoryFilter(!showCategoryFilter)}
+              className="filter-btn"
+              style={{ padding: "8px 12px", borderRadius: "5px", border: "1px solid #ccc", cursor: "pointer", backgroundColor: "white" }}
+            >
+              📁 Categorías
+            </button>
+            {showCategoryFilter && (
+              <div style={{ 
+                position: "absolute", right: 0, top: "40px", zIndex: 10, 
+                backgroundColor: "white", padding: "15px", border: "1px solid #ccc", borderRadius: "5px",
+                minWidth: "250px", maxHeight: "350px", overflowY: "auto", boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+                textAlign: "right"
+              }}>
+                <input 
+                  type="text" 
+                  placeholder="Buscar categoría..." 
+                  value={categorySearch} 
+                  onChange={(e) => setCategorySearch(e.target.value)} 
+                  style={{ 
+                    width: "100%", marginBottom: "15px", padding: "8px", 
+                    borderRadius: "4px", border: "1px solid #ccc", 
+                    fontSize: "0.9rem", textAlign: "right", boxSizing: "border-box" 
+                  }} 
+                />
+                {categories.filter(c => c !== "Todas" && c.toLowerCase().includes(categorySearch.toLowerCase())).map(cat => (
+                  <label key={cat} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: "1rem", cursor: "pointer", marginBottom: "8px", padding: "4px 0" }}>
+                    <span style={{ marginRight: "12px" }}>{cat}</span>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedCategories.includes(cat)} 
+                      onChange={() => toggleCategory(cat)} 
+                      style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {lastUpdate && (
@@ -144,7 +229,7 @@ export default function NewsSection() {
 
       {!loading && !syncing && !error && articles.length === 0 && (
         <p style={{ textAlign: "center", padding: "20px", color: "#999" }}>
-          No se encontraron noticias{category !== "Todas" ? ` para ${category}` : ""}.
+          No se encontraron noticias{selectedCategories.length > 0 ? ` para las categorías seleccionadas` : ""}.
         </p>
       )}
 
@@ -160,31 +245,32 @@ export default function NewsSection() {
               />
             )}
             <div className="news-item-content">
-              {article.category && (
-                <span style={{ 
-                  display: "inline-block",
-                  fontSize: "0.75rem",
-                  padding: "4px 8px",
-                  backgroundColor: "#e8f4f8",
-                  borderRadius: "3px",
-                  color: "#0066cc",
-                  marginBottom: "8px",
-                  fontWeight: "500"
-                }}>
-                  {article.category}
-                </span>
-              )}
-              {article.pubDate && (
-                <p className="news-item-date">
-                  {new Date(article.pubDate).toLocaleString("es-ES", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).replace(",", "")}
-                </p>
-              )}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                {article.category && (
+                  <span style={{ 
+                    display: "inline-block",
+                    fontSize: "0.75rem",
+                    padding: "4px 8px",
+                    backgroundColor: "#e8f4f8",
+                    borderRadius: "3px",
+                    color: "#0066cc",
+                    fontWeight: "500"
+                  }}>
+                    {article.category}
+                  </span>
+                )}
+                {article.timestamp && (
+                  <p className="news-item-date" style={{ margin: 0 }}>
+                    {new Date(article.timestamp).toLocaleString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).replace(",", "")}
+                  </p>
+                )}
+              </div>
               <a href={article.link} target="_blank" rel="noreferrer noopener" className="news-item-title">
                 {article.title || "Título no disponible"}
               </a>

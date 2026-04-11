@@ -930,6 +930,10 @@ body.dark-mode .sidebar-button.active {
     flex-direction: column;
   }
 
+  .main-content > * {
+    width: 100vw;
+  }
+
   .sidebar {
     width: 100%;
     flex-direction: row;

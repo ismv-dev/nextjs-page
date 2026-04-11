@@ -3,9 +3,9 @@
 -- ==========================================
 
 -- 1. VER TODAS LAS NOTICIAS RECIENTEMENTE SINCRONIZADAS
-SELECT id, title, pub_date, category, created_at 
+SELECT id, title, timestamp, category, created_at 
 FROM news 
-ORDER BY pub_date DESC 
+ORDER BY timestamp DESC 
 LIMIT 20;
 
 -- 2. CONTAR NOTICIAS POR CATEGORÍA
@@ -15,17 +15,17 @@ GROUP BY category
 ORDER BY total DESC;
 
 -- 3. ÚLTIMAS 10 NOTICIAS DE UNA CATEGORÍA
-SELECT title, description, link, pub_date, image_url
+SELECT title, description, link, timestamp, image_url
 FROM news
 WHERE category = 'Corporativo'
-ORDER BY pub_date DESC
+ORDER BY timestamp DESC
 LIMIT 10;
 
 -- 4. NOTICIAS DE LOS ÚLTIMOS 7 DÍAS
-SELECT title, category, pub_date
+SELECT title, category, timestamp
 FROM news
-WHERE pub_date >= NOW() - INTERVAL '7 days'
-ORDER BY pub_date DESC;
+WHERE timestamp >= NOW() - INTERVAL '7 days'
+ORDER BY timestamp DESC;
 
 -- 5. VER HISTÓRICO DE SINCRONIZACIONES
 SELECT category, last_sync, items_count, status
@@ -40,13 +40,13 @@ WHERE status = 'success'
 GROUP BY category;
 
 -- 7. BUSCAR NOTICIA POR TÍTULO
-SELECT title, link, pub_date, category
+SELECT title, link, timestamp, category
 FROM news
 WHERE LOWER(title) LIKE LOWER('%palabra clave%')
-ORDER BY pub_date DESC;
+ORDER BY timestamp DESC;
 
 -- 8. VER NOTICIAS SIN IMAGEN
-SELECT id, title, category, pub_date
+SELECT id, title, category, timestamp
 FROM news
 WHERE image_url IS NULL OR image_url = ''
 LIMIT 20;
