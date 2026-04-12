@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 export default function NewsSection({ 
   articles, 
+  allCategories,
   loading, 
   syncing, 
   error, 
@@ -13,7 +14,7 @@ export default function NewsSection({
   setFilters
 }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [categories, setCategories] = useState(["Todas"]);
+  const [categories, setCategories] = useState([]);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 3);
@@ -23,6 +24,12 @@ export default function NewsSection({
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+
+  useEffect(() => {
+    if (allCategories) {
+      setCategories(["Todas", ...allCategories]);
+    }
+  }, [allCategories]);
 
   useEffect(() => {
     setFilters({ selectedCategories, startDate, endDate });

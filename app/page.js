@@ -479,6 +479,7 @@ export default function Home() {
   const [newsLastUpdate, setNewsLastUpdate] = useState(null);
   const [newsOffset, setNewsOffset] = useState(0);
   const [newsHasMore, setNewsHasMore] = useState(true);
+  const [newsCategories, setNewsCategories] = useState([]);
   const [newsFilters, setNewsFilters] = useState({
     selectedCategories: [],
     startDate: "",
@@ -540,6 +541,7 @@ export default function Home() {
                       minute: "2-digit",
                       hour12: false
                     }));
+      setNewsCategories(data.allCategories);
       setNewsSyncing(false);
     } catch (error) {
       if (error.name !== "AbortError") {
@@ -801,6 +803,7 @@ export default function Home() {
         { view === "noticias" && (
           <NewsSection 
             articles={newsArticles}
+            allCategories={newsCategories}
             loading={newsLoading}
             syncing={newsSyncing}
             error={newsError}
