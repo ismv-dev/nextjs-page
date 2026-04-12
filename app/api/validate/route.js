@@ -29,17 +29,30 @@ async function askAI(content, instructions) {
 }
 
 export async function POST(request) {
+  // Validar token de autorización en producción
+  if (process.env.NODE_ENV === "production") {
+    const authHeader = request.headers.get("authorization");
+    const expectedToken = process.env.API_SECRET;
+    if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const body = await request.json();
-  const pregunta = body.pregunta;
-  const respuesta = body.respuesta;
+  const pregunta = typeof body.pregunta === 'string' ? body.pregunta.trim().substring(0, 1000) : null;
+  const respuesta = typeof body.respuesta === 'string' ? body.respuesta.trim().substring(0, 1000) : null;
 
   if (!pregunta || !respuesta) {
-    return NextResponse.json({ error: "Faltan datos en la petición" }, { status: 400 });
+    return NextResponse.json({ error: "Faltan datos o formato inválido en la petición" }, { status: 400 });
   }
 
   try {
     const text = await askAI(
-      `Dada la siguiente pregunta: \"${pregunta}\" ¿Es correcta esta respuesta? \"${respuesta}\"`,
+      `Analiza la siguiente interacción:
+      ### PREGUNTA: ${pregunta}
+      ### RESPUESTA DEL USUARIO: ${respuesta}
+      
+      Instrucción: Determina si la respuesta es correcta basándote estrictamente en la pregunta.`,
       "Responde solo con \"Si\" si consideras correcta la respuesta o \"No es correcto, porque [justificacion en español]\" en caso contrario. No agregues nada másni uses emojis, caracteres o simbolos"
     );
 

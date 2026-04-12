@@ -8,9 +8,15 @@ export async function GET(request) {
     const categories = searchParams.get("categories") ? decodeURIComponent(searchParams.get("categories")).split(",") : null;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const offset = parseInt(searchParams.get("offset") || "0");
-    const syncParam = searchParams.get("sync") === "true";
+    
+    // Validar y limitar paginación para evitar ataques de denegación de servicio (DoS)
+    const rawLimit = parseInt(searchParams.get("limit") || "10");
+    const limit = Math.min(Math.max(rawLimit, 1), 100); // Mínimo 1, Máximo 100
+    
+    const rawOffset = parseInt(searchParams.get("offset") || "0");
+    const offset = Math.max(rawOffset, 0);
+    
+    // REMOVED: syncParam = searchParams.get("sync") === "true" to prevent DoS attacks via public endpoint
 
     // Validar categorías si se proporcionan
     if (categories && categories.length > 0) {
@@ -40,8 +46,8 @@ export async function GET(request) {
       console.error("Error obteniendo noticias de BD:", dbError);
     }
 
-    // Si no hay datos en BD o se solicita sincronización, sincronizar en el momento
-    if (items.length === 0 && offset === 0 || syncParam) {
+    // Only attempt sync if items are empty and offset is 0, but we remove the manual syncParam trigger
+    if (items.length === 0 && offset === 0) {
         if (categories) {
           // Sincronizar todas las categorías seleccionadas
           for (const cat of categories) {

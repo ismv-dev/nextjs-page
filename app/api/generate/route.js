@@ -32,13 +32,22 @@ async function askAI(prompt, instructions) {
 }
 
 export async function POST(request) {
+  // Validar token de autorización en producción
+  if (process.env.NODE_ENV === "production") {
+    const authHeader = request.headers.get("authorization");
+    const expectedToken = process.env.API_SECRET;
+    if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const body = await request.json();
-  const theme = body.theme;
-  const level = body.level || "Normal";
-  const type = body.type;
+  const theme = typeof body.theme === 'string' ? body.theme.trim().substring(0, 200) : null;
+  const level = typeof body.level === 'string' ? body.level.trim() : "Normal";
+  const type = typeof body.type === 'string' ? body.type.trim() : null;
 
   if (!theme || !type || !TIPOS_PREGUNTA.includes(type) || !NIVELES_PREGUNTA.includes(level)) {
-    return NextResponse.json({ error: "Faltan datos en la petición" }, { status: 400 });
+    return NextResponse.json({ error: "Faltan datos o formato inválido en la petición" }, { status: 400 });
   }
 
   const tipo = capitalize(type);
@@ -52,7 +61,15 @@ export async function POST(request) {
   }
 
   try {
-    const text = await askAI(prompt, 'Responde solo lo solicitado. Prohibido: intros, saludos, cierres, explicaciones, caracteres no solicitados o muletillas (ej. "Aquí tienes"). Si la respuesta es un dato, entrega solo el dato. Sin ningún formato Markdown. Sé puramente funcional');
+    const text = await askAI(
+      `Crea una pregunta basada en el siguiente tema:
+      ### TEMA: ${theme}
+      ### TIPO: ${tipo}
+      ### NIVEL: ${nivel}
+      
+      Instrucción: Genera la pregunta siguiendo el formato solicitado.`,
+      'Responde solo lo solicitado. Prohibido: intros, saludos, cierres, explicaciones, caracteres no solicitados o muletillas (ej. "Aquí tienes"). Si la respuesta es un dato, entrega solo el dato. Sin ningún formato Markdown. Sé puramente funcional'
+    );
     const qaParts = text.split("--").map((item) => item.trim());
     const pregunta = capitalize(qaParts[0] || "");
     const alternativas = [];
