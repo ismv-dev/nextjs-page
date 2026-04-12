@@ -535,7 +535,11 @@ export default function Home() {
       
       setNewsArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
       setNewsHasMore(newArticles.length === LIMIT);
-      setNewsLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-CL"));
+      setNewsLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-CL", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false
+                    }));
       setNewsSyncing(false);
     } catch (error) {
       if (error.name !== "AbortError") {
