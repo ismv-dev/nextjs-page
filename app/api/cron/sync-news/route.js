@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { syncAllNews } from "@/lib/newsSync";
 import { initializeDatabase } from "@/lib/db";
 
-// Este endpoint se ejecuta diariamente a las 08:00 AM (UTC-3 Chile)
+// Este endpoint se ejecuta cada 5 minutos
 // Configurado en vercel.json con la propiedad "crons"
 
 export async function GET(request) {
