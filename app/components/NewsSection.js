@@ -67,7 +67,7 @@ export default function NewsSection() {
       setArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
       const hasMoreArticles = newArticles.length === LIMIT;
       setHasMore(hasMoreArticles);
-      setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-ES"));
+      setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-CL"));
       setSyncing(false);
       
       return { syncing: false };
@@ -233,7 +233,7 @@ export default function NewsSection() {
                 )}
                 {article.timestamp && (
                   <p className="news-item-date">
-                    {new Date(article.timestamp).toLocaleString("es-ES", {
+                    {new Date(article.timestamp).toLocaleString("es-CL", {
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
