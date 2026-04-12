@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "install": "sh setup.sh && npm install",
     "dev": "node lib/initDb.js && next dev",
     "build": "next build",
     "start": "next start",
