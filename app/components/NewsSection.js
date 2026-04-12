@@ -123,68 +123,53 @@ export default function NewsSection() {
   }, [hasMore, loading, syncing]);
 
   return (
-    <div className="trivia-card">
+    <div className="news-card">
       <div className="page-title-row">
         <h1 className="page-title">Noticias</h1>
-        <div className="news-filters" style={{ display: "flex", gap: "10px" }}>
-          <div style={{ position: "relative" }}>
+        <div className="news-filters">
+          <div className="filter-container">
             <button 
               onClick={() => setShowDateFilter(!showDateFilter)}
               className="filter-btn"
-              style={{ padding: "8px 12px", borderRadius: "5px", border: "1px solid #ccc", cursor: "pointer", backgroundColor: "white" }}
             >
               📅 Fecha
             </button>
             {showDateFilter && (
-              <div style={{ 
-                position: "absolute", right: 0, top: "40px", zIndex: 10, 
-                backgroundColor: "white", padding: "10px", border: "1px solid #ccc", borderRadius: "5px",
-                display: "flex", flexDirection: "column", gap: "5px", boxShadow: "0 2px 5px rgba(0,0,0,0.2)" 
-              }}>
-                <label style={{ fontSize: "0.8rem" }}>Desde: 
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ marginLeft: "5px" }} />
+              <div className="filter-dropdown date-filter">
+                <label className="filter-label">Desde: 
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="filter-input" />
                 </label>
-                <label style={{ fontSize: "0.8rem" }}>Hasta: 
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ marginLeft: "5px" }} />
+                <label className="filter-label">Hasta: 
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="filter-input" />
                 </label>
               </div>
             )}
           </div>
 
-          <div style={{ position: "relative" }}>
+          <div className="filter-container">
             <button 
               onClick={() => setShowCategoryFilter(!showCategoryFilter)}
               className="filter-btn"
-              style={{ padding: "8px 12px", borderRadius: "5px", border: "1px solid #ccc", cursor: "pointer", backgroundColor: "white" }}
             >
               📁 Categorías
             </button>
             {showCategoryFilter && (
-              <div style={{ 
-                position: "absolute", right: 0, top: "40px", zIndex: 10, 
-                backgroundColor: "white", padding: "15px", border: "1px solid #ccc", borderRadius: "5px",
-                minWidth: "250px", maxHeight: "350px", overflowY: "auto", boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-                textAlign: "right"
-              }}>
+              <div className="filter-dropdown category-filter">
                 <input 
                   type="text" 
                   placeholder="Buscar categoría..." 
                   value={categorySearch} 
                   onChange={(e) => setCategorySearch(e.target.value)} 
-                  style={{ 
-                    width: "100%", marginBottom: "15px", padding: "8px", 
-                    borderRadius: "4px", border: "1px solid #ccc", 
-                    fontSize: "0.9rem", textAlign: "right", boxSizing: "border-box" 
-                  }} 
+                  className="category-search-input" 
                 />
                 {categories.filter(c => c !== "Todas" && c.toLowerCase().includes(categorySearch.toLowerCase())).map(cat => (
-                  <label key={cat} style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: "1rem", cursor: "pointer", marginBottom: "8px", padding: "4px 0" }}>
-                    <span style={{ marginRight: "12px" }}>{cat}</span>
+                  <label key={cat} className="category-option">
+                    <span className="category-name">{cat}</span>
                     <input 
                       type="checkbox" 
                       checked={selectedCategories.includes(cat)} 
                       onChange={() => toggleCategory(cat)} 
-                      style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                      className="category-checkbox"
                     />
                   </label>
                 ))}
@@ -195,57 +180,35 @@ export default function NewsSection() {
       </div>
 
       {lastUpdate && (
-        <p style={{ fontSize: "0.85rem", color: "#666", marginBottom: "10px" }}>
+        <p className="news-last-update">
           Última actualización: {lastUpdate}
         </p>
       )}
 
       {syncing && (
-        <div style={{ textAlign: "center", padding: "20px" }}>
-          <div style={{
-            display: "inline-block",
-            width: "30px",
-            height: "30px",
-            border: "4px solid #f3f3f3",
-            borderTop: "4px solid #3498db",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }} />
-          <p style={{ marginTop: "10px", color: "#3498db" }}>
+        <div className="news-status-container">
+          <div className="news-spinner spinner-sync" />
+          <p className="status-text-sync">
             Sincronizando noticias de la web...
           </p>
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
         </div>
       )}
 
       {loading && !syncing && (
-        <div style={{ textAlign: "center", padding: "20px" }}>
-          <div style={{
-            display: "inline-block",
-            width: "30px",
-            height: "30px",
-            border: "4px solid #f3f3f3",
-            borderTop: "4px solid #2ecc71",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-          }} />
-          <p style={{ marginTop: "10px", color: "#2ecc71" }}>Cargando noticias...</p>
+        <div className="news-status-container">
+          <div className="news-spinner spinner-loading" />
+          <p className="status-text-loading">Cargando noticias...</p>
         </div>
       )}
 
       {error && !loading && !syncing && (
-        <p className="error-text" style={{ textAlign: "center", padding: "15px", backgroundColor: "#ffe6e6", borderRadius: "5px" }}>
+        <p className="error-text news-error-banner">
           ⚠️ {error}
         </p>
       )}
 
       {!loading && !syncing && !error && articles.length === 0 && (
-        <p style={{ textAlign: "center", padding: "20px", color: "#999" }}>
+        <p className="news-empty-text">
           No se encontraron noticias{selectedCategories.length > 0 ? ` para las categorías seleccionadas` : ""}.
         </p>
       )}
@@ -262,22 +225,14 @@ export default function NewsSection() {
               />
             )}
             <div className="news-item-content">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <div className="news-item-meta">
                 {article.category && (
-                  <span style={{ 
-                    display: "inline-block",
-                    fontSize: "0.75rem",
-                    padding: "4px 8px",
-                    backgroundColor: "#e8f4f8",
-                    borderRadius: "3px",
-                    color: "#0066cc",
-                    fontWeight: "500"
-                  }}>
+                  <span className="news-category-tag">
                     {article.category}
                   </span>
                 )}
                 {article.timestamp && (
-                  <p className="news-item-date" style={{ margin: 0 }}>
+                  <p className="news-item-date">
                     {new Date(article.timestamp).toLocaleString("es-ES", {
                       day: "2-digit",
                       month: "2-digit",
@@ -295,7 +250,7 @@ export default function NewsSection() {
             </div>
           </article>
         ))}
-        <div id="news-sentinel" style={{ height: "10px" }} />
+        <div id="news-sentinel" className="news-sentinel" />
       </div>
     </div>
   );

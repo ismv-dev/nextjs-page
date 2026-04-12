@@ -701,9 +701,7 @@ export default function Home() {
             onSelectGame={setSelectedGame}
           />
         )}
-        <div style={{ display: view === "noticias" ? "block" : "none" }}>
-          <NewsSection />
-        </div>
+        { view === "noticias" && <NewsSection />}
         {summaryOpen && (
           <QuestionSummary
             questions={questions}

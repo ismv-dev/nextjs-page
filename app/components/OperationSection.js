@@ -11,7 +11,7 @@ export default function OperationSection({
   onVerify,
 }) {
   return (
-    <div className="trivia-card">
+    <div className="operations-card">
       <h1 className="page-title">Aritmética y conversión</h1>
       <div className="question-panel">
         <div className="question-row">

@@ -3,9 +3,6 @@
 export default function Sidebar({ view, theme, onViewChange, onThemeChange }) {
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <h2 className="sidebar-title">Menú</h2>
-      </div>
       <nav className="sidebar-nav">
         <button
           type="button"
