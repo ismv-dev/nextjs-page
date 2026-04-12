@@ -10,7 +10,6 @@
     "lint": "next lint",
     "db:init": "node lib/initDb.js",
     "db:test": "node lib/testDb.js",
-    "db:sync": "curl -X POST http://localhost:3000/api/cron/sync-news",
     "db:docs": "cat DATABASE_QUERIES.sql"
   },
   "dependencies": {

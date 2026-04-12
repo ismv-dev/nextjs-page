@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { getNewsFromDatabase, syncNewsToDatabase, initializeDatabase, getAvailableCategories } from "@/lib/newsSync";
+import { syncNewsToDatabase, initializeDatabase, getAvailableCategories } from "@/lib/newsSync";
+import getNewsFromDatabase from "@/lib/getNews";
 
 export async function GET(request) {
   try {
     const newsCategories = getAvailableCategories();
     const { searchParams } = request.nextUrl;
-    const categories = searchParams.get("categories") ? decodeURIComponent(searchParams.get("categories")).split(",") : null;
+    const categories = searchParams.get("categories") ? decodeURIComponent(searchParams.get("categories")).split(",") : newsCategories;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     
@@ -36,8 +37,7 @@ export async function GET(request) {
 
     // Intentar obtener noticias de la BD
     let items = [];
-    let fromDatabase = false;
-    let requiresSync = false;
+    let fromDatabase = true;
 
     try {
       items = await getNewsFromDatabase({ categories, startDate, endDate }, limit, offset);
@@ -46,10 +46,11 @@ export async function GET(request) {
       console.error("Error obteniendo noticias de BD:", dbError);
     }
 
-    // Only attempt sync if items are empty and offset is 0, but we remove the manual syncParam trigger
-    if (items.length === 0 && offset === 0) {
-        if (categories) {
-          // Sincronizar todas las categorías seleccionadas
+    // Sincronizar en segundo plano si es la primera página (offset 0)
+    // NO usamos await aquí para no bloquear la respuesta al cliente
+    if (offset === 0) {
+      (async () => {
+        try {
           for (const cat of categories) {
             try {
               await syncNewsToDatabase(cat);
@@ -57,27 +58,11 @@ export async function GET(request) {
               console.error(`Error sincronizando ${cat}:`, error);
             }
           }
-        }
-
-        // Obtener datos sincronizados
-        try {
-          items = await getNewsFromDatabase({ categories, startDate, endDate }, limit, offset);
-          fromDatabase = true;
-          requiresSync = false;
+          console.log("Sincronización de fondo completada.");
         } catch (syncError) {
-          console.error("Error sincronizando noticias:", syncError);
-          requiresSync = true;
-
-          if (items.length === 0 && offset === 0) {
-            return NextResponse.json(
-              {
-                error: "No se pudieron cargar las noticias. Intente nuevamente.",
-                requiresSync: true,
-              },
-              { status: 502 }
-            );
-          }
+          console.error("Error crítico en proceso de sincronización de fondo:", syncError);
         }
+      })();
     }
 
     // Transformar datos de BD para que coincidan con el formato esperado
@@ -98,7 +83,6 @@ export async function GET(request) {
       allCategories: newsCategories,
       items: formattedItems,
       fromDatabase,
-      requiresSync,
       count: formattedItems.length,
       timestamp: new Date(),
     });

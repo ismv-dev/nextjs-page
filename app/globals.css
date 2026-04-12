@@ -262,7 +262,6 @@ body.dark-mode .sidebar-button.active {
 
   .main-content > * {
     text-align: center;
-    width: 50vw;
     max-width: 80rem;
   }
 
@@ -928,10 +927,6 @@ body.dark-mode .sidebar-button.active {
 @media screen and (max-width: 900px) {
   .app-container {
     flex-direction: column;
-  }
-
-  .main-content > * {
-    width: 100%;
   }
 
   .sidebar {

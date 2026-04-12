@@ -485,6 +485,7 @@ export default function Home() {
     startDate: "",
     endDate: "",
   });
+  const [newsInitialLoaded, setNewsInitialLoaded] = useState(false);
   const newsFetchingRef = useRef(false);
   const LIMIT = 10;
 
@@ -524,10 +525,11 @@ export default function Home() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        /*
         if (body.requiresSync) {
           setNewsSyncing(true);
           return;
-        }
+        }*/
         throw new Error(body.error || "No se pudo cargar las noticias");
       }
 
@@ -543,6 +545,7 @@ export default function Home() {
                     }));
       setNewsCategories(data.allCategories);
       setNewsSyncing(false);
+      if (isInitial) setNewsInitialLoaded(true);
     } catch (error) {
       if (error.name !== "AbortError") {
         setNewsError(error.message || "Error al obtener noticias");
@@ -556,12 +559,14 @@ export default function Home() {
 
   useEffect(() => {
     if (!newsFilters.startDate) return;
+    if (newsInitialLoaded) return; // Evitar recarga si ya se cargaron inicialmente
+
     const controller = new AbortController();
     setNewsOffset(0);
     setNewsHasMore(true);
     fetchNews(0, true, controller.signal);
     return () => controller.abort();
-  }, [newsFilters]);
+  }, [newsFilters, newsInitialLoaded]);
 
   const handleFetchNextPage = () => {
     const nextOffset = newsOffset + LIMIT;
