@@ -8,6 +8,7 @@ import GamesSection from "./components/GamesSection";
 import QuestionSummary from "./components/QuestionSummary";
 import { buildArithmeticExpression, getBinaryConversion } from "./lib/operations";
 import NewsSection from "./components/NewsSection";
+import { useRef } from "react";
 
 let sudokuGameBoard = [];
 let sudokuSolvedBoard = [];
@@ -470,6 +471,98 @@ export default function Home() {
   const [operationFeedback, setOperationFeedback] = useState("");
   const [selectedGame, setSelectedGame] = useState(null);
 
+  // --- News State ---
+  const [newsArticles, setNewsArticles] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsSyncing, setNewsSyncing] = useState(false);
+  const [newsError, setNewsError] = useState("");
+  const [newsLastUpdate, setNewsLastUpdate] = useState(null);
+  const [newsOffset, setNewsOffset] = useState(0);
+  const [newsHasMore, setNewsHasMore] = useState(true);
+  const [newsFilters, setNewsFilters] = useState({
+    selectedCategories: [],
+    startDate: "",
+    endDate: "",
+  });
+  const newsFetchingRef = useRef(false);
+  const LIMIT = 10;
+
+  useEffect(() => {
+    const date = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 3);
+    
+    setNewsFilters({
+      selectedCategories: [],
+      startDate: start.toISOString().split('T')[0],
+      endDate: date.toISOString().split('T')[0],
+    });
+  }, []);
+
+  const fetchNews = async (currentOffset, isInitial, signal) => {
+    if (newsFetchingRef.current) return;
+    newsFetchingRef.current = true;
+
+    if (isInitial) setNewsLoading(true);
+    if (isInitial) {
+      setNewsSyncing(false);
+      setNewsError("");
+    }
+
+    try {
+      const { selectedCategories, startDate, endDate } = newsFilters;
+      const categoryQuery = selectedCategories.length > 0 
+        ? `categories=${encodeURIComponent(selectedCategories.join(','))}` 
+        : "";
+      const dateQuery = `startDate=${startDate}&endDate=${endDate}`;
+      const query = [categoryQuery, dateQuery].filter(Boolean).join('&');
+      
+      const response = await fetch(`/api/news?${query}&limit=${LIMIT}&offset=${currentOffset}`, {
+        signal: signal,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        if (body.requiresSync) {
+          setNewsSyncing(true);
+          return;
+        }
+        throw new Error(body.error || "No se pudo cargar las noticias");
+      }
+
+      const data = await response.json();
+      const newArticles = data.items || [];
+      
+      setNewsArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
+      setNewsHasMore(newArticles.length === LIMIT);
+      setNewsLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-CL"));
+      setNewsSyncing(false);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        setNewsError(error.message || "Error al obtener noticias");
+        if (isInitial) setNewsArticles([]);
+      }
+    } finally {
+      setNewsLoading(false);
+      newsFetchingRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (!newsFilters.startDate) return;
+    const controller = new AbortController();
+    setNewsOffset(0);
+    setNewsHasMore(true);
+    fetchNews(0, true, controller.signal);
+    return () => controller.abort();
+  }, [newsFilters]);
+
+  const handleFetchNextPage = () => {
+    const nextOffset = newsOffset + LIMIT;
+    setNewsOffset(nextOffset);
+    fetchNews(nextOffset, false, undefined);
+  };
+
   useEffect(() => {
     const saved = window.localStorage.getItem("theme");
     if (saved) {
@@ -701,7 +794,18 @@ export default function Home() {
             onSelectGame={setSelectedGame}
           />
         )}
-        { view === "noticias" && <NewsSection />}
+        { view === "noticias" && (
+          <NewsSection 
+            articles={newsArticles}
+            loading={newsLoading}
+            syncing={newsSyncing}
+            error={newsError}
+            lastUpdate={newsLastUpdate}
+            hasMore={newsHasMore}
+            fetchNextPage={handleFetchNextPage}
+            setFilters={setNewsFilters}
+          />
+        )}
         {summaryOpen && (
           <QuestionSummary
             questions={questions}

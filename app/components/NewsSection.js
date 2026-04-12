@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
-export default function NewsSection() {
+export default function NewsSection({ 
+  articles, 
+  loading, 
+  syncing, 
+  error, 
+  lastUpdate, 
+  hasMore, 
+  fetchNextPage,
+  setFilters
+}) {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [categories, setCategories] = useState(["Todas"]);
   const [startDate, setStartDate] = useState(() => {
@@ -14,85 +23,10 @@ export default function NewsSection() {
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState("");
-  const [lastUpdate, setLastUpdate] = useState(null);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const isInitialFetchDone = useRef(false);
-  const fetchingRef = useRef(false);
-
-  const LIMIT = 10;
-
-  const fetchNews = async (currentOffset, isInitial, signal) => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
-
-    if (isInitial) setLoading(true);
-    if (isInitial) {
-      setSyncing(false);
-      setError("");
-    }
-    try {
-      const categoryQuery = selectedCategories.length > 0 
-        ? `categories=${encodeURIComponent(selectedCategories.join(','))}` 
-        : "";
-      const dateQuery = `startDate=${startDate}&endDate=${endDate}`;
-      const query = [categoryQuery, dateQuery].filter(Boolean).join('&');
-      
-      const response = await fetch(`/api/news?${query}&limit=${LIMIT}&offset=${currentOffset}`, {
-        signal: signal,
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        
-        if (body.requiresSync) {
-          setSyncing(true);
-          return { syncing: true };
-        }
-        
-        throw new Error(body.error || "No se pudo cargar las noticias");
-      }
-
-      const data = await response.json();
-      const newArticles = data.items || [];
-      
-      if (data.allCategories && categories.length === 1) {
-        setCategories(data.allCategories);
-      }
-      
-      setArticles(prev => isInitial ? newArticles : [...prev, ...newArticles]);
-      const hasMoreArticles = newArticles.length === LIMIT;
-      setHasMore(hasMoreArticles);
-      setLastUpdate(new Date(data.timestamp).toLocaleTimeString("es-CL"));
-      setSyncing(false);
-      
-      return { syncing: false };
-    } catch (fetchError) {
-      if (fetchError.name !== "AbortError") {
-        setError(fetchError.message || "Error al obtener noticias");
-        if (isInitial) setArticles([]);
-      }
-      return { error: true };
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
-    }
-  };
 
   useEffect(() => {
-    const controller = new AbortController();
-    
-    setOffset(0);
-    setHasMore(true);
-    
-    fetchNews(0, true, controller.signal);
-
-    return () => controller.abort();
-  }, [selectedCategories, startDate, endDate]);
+    setFilters({ selectedCategories, startDate, endDate });
+  }, [selectedCategories, startDate, endDate, setFilters]);
 
   const toggleCategory = (cat) => {
     setSelectedCategories(prev => 
@@ -105,22 +39,18 @@ export default function NewsSection() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !fetchingRef.current) {
-          setOffset(prev => {
-            const nextOffset = prev + LIMIT;
-            fetchNews(nextOffset, false, undefined);
-            return nextOffset;
-          });
+        if (entries[0].isIntersecting && articles.length >= 10) {
+          fetchNextPage();
         }
       },
-      { rootMargin: "800px" }
+      { rootMargin: "100px" }
     );
 
     const sentinel = document.getElementById("news-sentinel");
     if (sentinel) observer.observe(sentinel);
 
     return () => observer.disconnect();
-  }, [hasMore, loading, syncing]);
+  }, [hasMore, loading, syncing, fetchNextPage]);
 
   return (
     <div className="news-card">
@@ -239,7 +169,8 @@ export default function NewsSection() {
                       year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
-                    }).replace(",", "")}
+                      hour12: false
+                    }).replace(',', ' ')}
                   </p>
                 )}
               </div>
