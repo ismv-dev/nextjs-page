@@ -1,0 +1,54 @@
+[package]
+name    = "rss-sync"
+version = "0.1.0"
+edition = "2021"
+
+# ── Runtime ────────────────────────────────────────────────────────────────────
+[dependencies]
+tokio = { version = "1", features = [
+    "rt-multi-thread",  # scheduler multi-hilo (necesario para JoinSet + tasks)
+    "macros",           # #[tokio::main]
+    "sync",             # mpsc, Semaphore
+    "time",             # sleep, interval, timeout
+] }
+
+# ── HTTP ───────────────────────────────────────────────────────────────────────
+reqwest = { version = "0.12", default-features = false, features = [
+    "rustls-tls",   # TLS sin OpenSSL; portátil y sin dependencia de sistema
+    "gzip",         # los feeds de Cooperativa se sirven comprimidos
+] }
+
+# ── RSS / XML ──────────────────────────────────────────────────────────────────
+rss = { version = "2", default-features = false }
+# rss depende de quick-xml internamente; no se necesita declarar por separado.
+
+# ── Base de datos ──────────────────────────────────────────────────────────────
+sqlx = { version = "0.8", default-features = false, features = [
+    "postgres",     # driver PostgreSQL
+    "runtime-tokio-rustls", # integración con el runtime y TLS elegido
+    "macros",       # sqlx::query!
+    "chrono",       # mapeo DateTime<Utc> ↔ timestamptz
+] }
+
+# ── Fecha / hora ───────────────────────────────────────────────────────────────
+chrono = { version = "0.4", default-features = false, features = [
+    "std",  # necesario para DateTime<Utc> en contexto std
+] }
+
+# ── Futuros combinadores ───────────────────────────────────────────────────────
+futures = { version = "0.3", default-features = false, features = [
+    "std",  # FuturesUnordered, StreamExt
+] }
+
+# ── Variables de entorno ───────────────────────────────────────────────────────
+dotenvy = "0.15"
+
+# ── Manejo de errores ──────────────────────────────────────────────────────────
+anyhow = "1"
+
+# ── Perfil release ─────────────────────────────────────────────────────────────
+[profile.release]
+opt-level     = 3
+lto           = "thin"   # Link-Time Optimization ligero: reduce binario ~15-25 %
+codegen-units = 1        # un único codegen unit → mejor inlining cross-crate
+strip         = "symbols" # elimina símbolos de debug del binario final

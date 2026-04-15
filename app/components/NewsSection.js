@@ -11,16 +11,10 @@ export default function NewsSection({
   lastUpdate, 
   hasMore, 
   fetchNextPage,
-  setFilters
+  setFilters,
+  filters
 }) {
-  const [selectedCategories, setSelectedCategories] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - 3);
-    return date.toISOString().split('T')[0];
-  });
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
@@ -31,14 +25,13 @@ export default function NewsSection({
     }
   }, [allCategories]);
 
-  useEffect(() => {
-    setFilters({ selectedCategories, startDate, endDate });
-  }, [selectedCategories, startDate, endDate, setFilters]);
-
   const toggleCategory = (cat) => {
-    setSelectedCategories(prev => 
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-    );
+    const current = filters.selectedCategories || [];
+    const next = current.includes(cat) 
+      ? current.filter(c => c !== cat) 
+      : [...current, cat];
+    
+    setFilters({ ...filters, selectedCategories: next });
   };
 
   useEffect(() => {
@@ -50,7 +43,7 @@ export default function NewsSection({
           fetchNextPage();
         }
       },
-      { rootMargin: "100px" }
+      { rootMargin: "600px" }
     );
 
     const sentinel = document.getElementById("news-sentinel");
@@ -74,10 +67,10 @@ export default function NewsSection({
             {showDateFilter && (
               <div className="filter-dropdown date-filter">
                 <label className="filter-label">Desde: 
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="filter-input" />
+                  <input type="date" value={filters.startDate} onChange={e => setFilters({ ...filters, startDate: e.target.value })} className="filter-input" />
                 </label>
                 <label className="filter-label">Hasta: 
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="filter-input" />
+                  <input type="date" value={filters.endDate} onChange={e => setFilters({ ...filters, endDate: e.target.value })} className="filter-input" />
                 </label>
               </div>
             )}
@@ -104,7 +97,7 @@ export default function NewsSection({
                     <span className="category-name">{cat}</span>
                     <input 
                       type="checkbox" 
-                      checked={selectedCategories.includes(cat)} 
+                      checked={(filters.selectedCategories || []).includes(cat)} 
                       onChange={() => toggleCategory(cat)} 
                       className="category-checkbox"
                     />
@@ -146,7 +139,7 @@ export default function NewsSection({
 
       {!loading && !syncing && !error && articles.length === 0 && (
         <p className="news-empty-text">
-          No se encontraron noticias{selectedCategories.length > 0 ? ` para las categorías seleccionadas` : ""}.
+          No se encontraron noticias{(filters.selectedCategories || []).length > 0 ? ` para las categorías seleccionadas` : ""}.
         </p>
       )}
 
@@ -170,7 +163,8 @@ export default function NewsSection({
                 )}
                 {article.timestamp && (
                   <p className="news-item-date">
-                    {new Date(article.timestamp).toLocaleString("es-CL", {
+                    {new Date(article.timestamp).toLocaleString(undefined, {
+                      timeZone: 'UTC',
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
@@ -184,7 +178,7 @@ export default function NewsSection({
               <a href={article.link} target="_blank" rel="noreferrer noopener" className="news-item-title">
                 {article.title || "Título no disponible"}
               </a>
-              {article.description && <p className="news-item-description">{article.description}</p>}
+              {article.description && <div className="news-item-description" dangerouslySetInnerHTML={{ __html: article.description }} />}
             </div>
           </article>
         ))}

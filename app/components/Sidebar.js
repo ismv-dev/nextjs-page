@@ -6,17 +6,10 @@ export default function Sidebar({ view, theme, onViewChange, onThemeChange }) {
       <nav className="sidebar-nav">
         <button
           type="button"
-          className={`sidebar-button ${view === "trivias" ? "active" : ""}`}
-          onClick={() => onViewChange("trivias")}
+          className={`sidebar-button ${view === "noticias" ? "active" : ""}`}
+          onClick={() => onViewChange("noticias")}
         >
-          Trivias
-        </button>
-        <button
-          type="button"
-          className={`sidebar-button ${view === "operaciones" ? "active" : ""}`}
-          onClick={() => onViewChange("operaciones")}
-        >
-          Aritmética
+          Noticias
         </button>
         <button
           type="button"
@@ -27,10 +20,17 @@ export default function Sidebar({ view, theme, onViewChange, onThemeChange }) {
         </button>
         <button
           type="button"
-          className={`sidebar-button ${view === "noticias" ? "active" : ""}`}
-          onClick={() => onViewChange("noticias")}
+          className={`sidebar-button ${view === "trivias" ? "active" : ""}`}
+          onClick={() => onViewChange("trivias")}
         >
-          Noticias
+          Trivias
+        </button>
+        <button
+          type="button"
+          className={`sidebar-button ${view === "operaciones" ? "active" : ""}`}
+          onClick={() => onViewChange("operaciones")}
+        >
+          Matemáticas
         </button>
       </nav>
       <div className="theme-switch-wrapper">

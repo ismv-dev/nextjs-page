@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { syncNewsToDatabase, initializeDatabase, getAvailableCategories } from "@/lib/newsSync";
-import getNewsFromDatabase from "@/lib/getNews";
+import { initializeDatabase } from "@/lib/db.js";
+import { getNewsFromDatabase, getAvailableCategories } from "@/lib/getNews.js";
 
 export async function GET(request) {
   try {
-    const newsCategories = getAvailableCategories();
+    const cats = await getAvailableCategories();
+    const newsCategories = cats["categories"];
     const { searchParams } = request.nextUrl;
     const categories = searchParams.get("categories") ? decodeURIComponent(searchParams.get("categories")).split(",") : newsCategories;
     const startDate = searchParams.get("startDate");
@@ -12,7 +13,7 @@ export async function GET(request) {
     
     // Validar y limitar paginación para evitar ataques de denegación de servicio (DoS)
     const rawLimit = parseInt(searchParams.get("limit") || "10");
-    const limit = Math.min(Math.max(rawLimit, 1), 100); // Mínimo 1, Máximo 100
+    const limit = Math.max(rawLimit, 1)
     
     const rawOffset = parseInt(searchParams.get("offset") || "0");
     const offset = Math.max(rawOffset, 0);
@@ -44,25 +45,6 @@ export async function GET(request) {
       fromDatabase = items.length > 0;
     } catch (dbError) {
       console.error("Error obteniendo noticias de BD:", dbError);
-    }
-
-    // Sincronizar en segundo plano si es la primera página (offset 0)
-    // NO usamos await aquí para no bloquear la respuesta al cliente
-    if (offset === 0) {
-      (async () => {
-        try {
-          for (const cat of categories) {
-            try {
-              await syncNewsToDatabase(cat);
-            } catch (error) {
-              console.error(`Error sincronizando ${cat}:`, error);
-            }
-          }
-          console.log("Sincronización de fondo completada.");
-        } catch (syncError) {
-          console.error("Error crítico en proceso de sincronización de fondo:", syncError);
-        }
-      })();
     }
 
     // Transformar datos de BD para que coincidan con el formato esperado

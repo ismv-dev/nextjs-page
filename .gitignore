@@ -44,3 +44,6 @@ __pycache__/
 # OS specific
 Thumbs.db
 *.log
+
+.rustc_info.json
+CACHEDIR.TAG
