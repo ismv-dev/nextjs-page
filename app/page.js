@@ -474,14 +474,14 @@ export default function Home() {
   // --- News State ---
   const [newsArticles, setNewsArticles] = useState([]);
   const [newsLoading, setNewsLoading] = useState(false);
-  const [newsSyncing, setNewsSyncing] = useState(false);
   const [newsError, setNewsError] = useState("");
   const [newsLastUpdate, setNewsLastUpdate] = useState(null);
   const [newsOffset, setNewsOffset] = useState(0);
   const [newsHasMore, setNewsHasMore] = useState(true);
-  const [newsCategories, setNewsCategories] = useState([]);
+  const [newsAvailableCategories, setNewsAvailableCategories] = useState({categories: [], specific_categories: []});
   const [newsFilters, setNewsFilters] = useState({
     selectedCategories: [],
+    selectedSpecificCategories: [],
     startDate: "",
     endDate: "",
   });
@@ -497,6 +497,7 @@ export default function Home() {
     
     setNewsFilters({
       selectedCategories: [],
+      selectedSpecificCategories: [],
       startDate: startDate,
       endDate: date,
     });
@@ -508,17 +509,19 @@ export default function Home() {
 
     if (isInitial) setNewsLoading(true);
     if (isInitial) {
-      setNewsSyncing(false);
       setNewsError("");
     }
 
     try {
-      const { selectedCategories, startDate, endDate } = newsFilters;
+      const { selectedCategories, selectedSpecificCategories, startDate, endDate } = newsFilters;
       const categoryQuery = selectedCategories.length > 0 
         ? `categories=${encodeURIComponent(selectedCategories.join(','))}` 
         : "";
+      const specificCategoryQuery = selectedSpecificCategories.length > 0 
+        ? `specific_categories=${encodeURIComponent(selectedSpecificCategories.join(','))}` 
+        : "";
       const dateQuery = `startDate=${new Date(startDate).toISOString().split('T')[0]}&endDate=${new Date(endDate).toISOString().split('T')[0]}`;
-      const query = [categoryQuery, dateQuery].filter(Boolean).join('&');
+      const query = [categoryQuery, specificCategoryQuery, dateQuery].filter(Boolean).join('&');
       
       const response = await fetch(`/api/news?${query}&limit=${LIMIT}&offset=${currentOffset}`, {
         signal: signal,
@@ -526,11 +529,6 @@ export default function Home() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        /*
-        if (body.requiresSync) {
-          setNewsSyncing(true);
-          return;
-        }*/
         throw new Error(body.error || "No se pudo cargar las noticias");
       }
 
@@ -544,8 +542,7 @@ export default function Home() {
                       minute: "2-digit",
                       hour12: false
                     }));
-      setNewsCategories(data.allCategories);
-      setNewsSyncing(false);
+      setNewsAvailableCategories(data.availableCategories);
       if (isInitial) setNewsInitialLoaded(true);
     } catch (error) {
       if (error.name !== "AbortError") {
@@ -773,9 +770,8 @@ export default function Home() {
         { view === "noticias" && (
           <NewsSection 
             articles={newsArticles}
-            allCategories={newsCategories}
+            availableCategories={newsAvailableCategories}
             loading={newsLoading}
-            syncing={newsSyncing}
             error={newsError}
             lastUpdate={newsLastUpdate}
             hasMore={newsHasMore}

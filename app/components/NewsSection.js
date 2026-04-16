@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { parseHTMLDescription } from "../lib/newsUtils";
 
 export default function NewsSection({ 
   articles, 
-  allCategories,
+  availableCategories,
   loading, 
-  syncing, 
   error, 
   lastUpdate, 
   hasMore, 
@@ -15,15 +15,24 @@ export default function NewsSection({
   filters
 }) {
   const [categories, setCategories] = useState([]);
+  const [specificCategories, setSpecificCategories] = useState([]);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [showSpecificCategoryFilter, setShowSpecificCategoryFilter] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const [specificCategorySearch, setSpecificCategorySearch] = useState("");
 
   useEffect(() => {
-    if (allCategories) {
-      setCategories(["Todas", ...allCategories]);
+    if (availableCategories.categories) {
+      setCategories([...availableCategories.categories]);
     }
-  }, [allCategories]);
+  }, [availableCategories.categories]);
+  
+  useEffect(() => {
+    if (availableCategories.specific_categories) {
+      setSpecificCategories([...availableCategories.specific_categories]);
+    }
+  }, [availableCategories.specific_categories]);
 
   const toggleCategory = (cat) => {
     const current = filters.selectedCategories || [];
@@ -34,8 +43,17 @@ export default function NewsSection({
     setFilters({ ...filters, selectedCategories: next });
   };
 
+  const toggleSpecificCategory = (cat) => {
+    const current = filters.selectedSpecificCategories || [];
+    const next = current.includes(cat) 
+      ? current.filter(c => c !== cat) 
+      : [...current, cat];
+    
+    setFilters({ ...filters, selectedSpecificCategories: next });
+  };
+
   useEffect(() => {
-    if (!hasMore || loading || syncing) return;
+    if (!hasMore || loading) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -50,7 +68,7 @@ export default function NewsSection({
     if (sentinel) observer.observe(sentinel);
 
     return () => observer.disconnect();
-  }, [hasMore, loading, syncing, fetchNextPage]);
+  }, [hasMore, loading, fetchNextPage]);
 
   return (
     <div className="news-card">
@@ -92,13 +110,44 @@ export default function NewsSection({
                   onChange={(e) => setCategorySearch(e.target.value)} 
                   className="category-search-input" 
                 />
-                {categories.filter(c => c !== "Todas" && c.toLowerCase().includes(categorySearch.toLowerCase())).map(cat => (
+                {categories.filter(c => c.toLowerCase().includes(categorySearch.toLowerCase())).map(cat => (
                   <label key={cat} className="category-option">
                     <span className="category-name">{cat}</span>
                     <input 
                       type="checkbox" 
                       checked={(filters.selectedCategories || []).includes(cat)} 
                       onChange={() => toggleCategory(cat)} 
+                      className="category-checkbox"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="filter-container">
+            <button 
+              onClick={() => setShowSpecificCategoryFilter(!showSpecificCategoryFilter)}
+              className="filter-btn"
+            >
+              📁 Categorías específicas
+            </button>
+            {showSpecificCategoryFilter && (
+              <div className="filter-dropdown category-filter">
+                <input 
+                  type="text" 
+                  placeholder="Buscar categoría específica..." 
+                  value={specificCategorySearch} 
+                  onChange={(e) => setSpecificCategorySearch(e.target.value)} 
+                  className="category-search-input" 
+                />
+                {specificCategories.filter(c => c.toLowerCase().includes(specificCategorySearch.toLowerCase())).map(cat => (
+                  <label key={cat} className="category-option">
+                    <span className="category-name">{cat}</span>
+                    <input 
+                      type="checkbox" 
+                      checked={(filters.selectedSpecificCategories || []).includes(cat)} 
+                      onChange={() => toggleSpecificCategory(cat)} 
                       className="category-checkbox"
                     />
                   </label>
@@ -115,29 +164,20 @@ export default function NewsSection({
         </p>
       )}
 
-      {syncing && (
-        <div className="news-status-container">
-          <div className="news-spinner spinner-sync" />
-          <p className="status-text-sync">
-            Sincronizando noticias de la web...
-          </p>
-        </div>
-      )}
-
-      {loading && !syncing && (
+      {loading && (
         <div className="news-status-container">
           <div className="news-spinner spinner-loading" />
           <p className="status-text-loading">Cargando noticias...</p>
         </div>
       )}
 
-      {error && !loading && !syncing && (
+      {error && !loading && (
         <p className="error-text news-error-banner">
           ⚠️ {error}
         </p>
       )}
 
-      {!loading && !syncing && !error && articles.length === 0 && (
+      {!loading && !error && articles.length === 0 && (
         <p className="news-empty-text">
           No se encontraron noticias{(filters.selectedCategories || []).length > 0 ? ` para las categorías seleccionadas` : ""}.
         </p>
@@ -178,7 +218,7 @@ export default function NewsSection({
               <a href={article.link} target="_blank" rel="noreferrer noopener" className="news-item-title">
                 {article.title || "Título no disponible"}
               </a>
-              {article.description && <div className="news-item-description" dangerouslySetInnerHTML={{ __html: article.description }} />}
+              {article.description && <div className="news-item-description" dangerouslySetInnerHTML={{ __html: parseHTMLDescription(article.description) }} />}
             </div>
           </article>
         ))}
