@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "ISMV",
+  title: "Recursos de ingeniería",
   description: "Proyecto Next.js",
 };
 

@@ -1,6 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
 @import "tailwindcss";
-@reference "tailwindcss";
+
+@theme {
+  --color-primary: #04128e;
+  --color-secondary: #1e3a8a;
+  --color-accent: #3b82f6;
+  --color-dark-bg: #10101d;
+  --color-dark-card: rgba(255, 255, 255, 0.05);
+  --color-dark-input: rgba(255, 255, 255, 0.08);
+  --color-games-panel: #bdc3c7;
+  --color-games-border: #ecf0f1;
+  --color-games-cell: #bdc3c7;
+  --color-games-revealed: #1e272e;
+  --color-mine-hit: rgba(255, 48, 96, 0.25);
+  --color-mine-shown: rgba(255, 48, 96, 0.08);
+
+  --font-jersey: "Jersey 10", sans-serif;
+
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
 
 :root {
   --color: #04128e;
@@ -13,7 +31,7 @@
   --text-main: #04128e;
   --text-muted: #3b82f6;
 
-  --dark-color: #b2d2ff;
+  --dark-color: #d6e7ff;
   --dark-bg: #10101d;
   --dark-btn-bg: #1f2937;
   --dark-btn-hover: #374151;
@@ -63,7 +81,14 @@
 }
 
 * {
+  text-decoration: none;
+  color: inherit;
   box-sizing: border-box;
+}
+
+img {
+  max-width: fit-content;
+  max-height: fit-content;
 }
 
 .new-description-embedded-iframe {
@@ -599,11 +624,13 @@ body.dark-mode .sidebar-button.active {
   padding: 16px;
   border-radius: 18px;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(120, 120, 120, 0.115);
+  background: #a1a1a114;
   display: flex;
   gap: 16px;
   align-items: flex-start;
 }
+
+
 
 .news-item-image {
   width: 200px;
@@ -618,6 +645,17 @@ body.dark-mode .sidebar-button.active {
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.news-item-content.resume {
+    -webkit-box-orient: vertical;
+    max-height: 300px;
+    line-height: 1.5;
+    overflow: hidden;
+}
+
+.bi-caret-down-fill {
+  margin: 0 auto;
 }
 
 .news-item-title {
@@ -690,13 +728,13 @@ body.dark-mode .sidebar-button.active {
   border-radius: 12px;
   padding: 10px 14px;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  background: var(--btn-bg);
+  background: var(--dark-btn-bg);
   cursor: pointer;
 }
 
 .btnPregunta:hover,
 .game-card:hover {
-  background: var(--btn-hover);
+  background: var(--dark-btn-hover);
 }
 
 .game-grid {
@@ -1167,7 +1205,7 @@ body.dark-mode .sidebar-button.active {
 
 body.dark-mode .filter-btn,
 body.dark-mode .filter-dropdown {
-  background-color: var(--dark-card-bg);
+  background-color: var(--dark-bg);
   border-color: var(--dark-border);
   color: var(--dark-text-light);
 }

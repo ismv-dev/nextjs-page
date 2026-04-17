@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { parseHTMLDescription } from "../lib/newsUtils";
+import NewsArticle from "./NewsArticle.js";
 
 export default function NewsSection({ 
   articles, 
@@ -184,44 +184,9 @@ export default function NewsSection({
       )}
 
       <div className="news-list">
-        {articles.map((article, index) => (
-          <article key={`${article.link}-${index}`} className="news-item">
-            {article.imageUrl && (
-              <img
-                src={article.imageUrl}
-                alt={article.title || "Imagen de noticia"}
-                className="news-item-image"
-                loading="lazy"
-              />
-            )}
-            <div className="news-item-content">
-              <div className="news-item-meta">
-                {article.category && (
-                  <span className="news-category-tag">
-                    {article.category}
-                  </span>
-                )}
-                {article.timestamp && (
-                  <p className="news-item-date">
-                    {new Date(article.timestamp).toLocaleString(undefined, {
-                      timeZone: 'UTC',
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false
-                    }).replace(',', ' ')}
-                  </p>
-                )}
-              </div>
-              <a href={article.link} target="_blank" rel="noreferrer noopener" className="news-item-title">
-                {article.title || "Título no disponible"}
-              </a>
-              {article.description && <div className="news-item-description" dangerouslySetInnerHTML={{ __html: parseHTMLDescription(article.description) }} />}
-            </div>
-          </article>
-        ))}
+        {articles.map((article, index) => 
+          <NewsArticle article={article} index={index} key={index}/>
+        )}
         <div id="news-sentinel" className="news-sentinel" />
       </div>
     </div>
