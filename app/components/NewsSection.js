@@ -5,7 +5,7 @@ import NewsArticle from "./NewsArticle.js";
 
 export default function NewsSection({ 
   articles, 
-  availableCategories,
+  availableCategories = { categories: [], specific_categories: [] },
   loading, 
   error, 
   lastUpdate, 
@@ -22,17 +22,30 @@ export default function NewsSection({
   const [categorySearch, setCategorySearch] = useState("");
   const [specificCategorySearch, setSpecificCategorySearch] = useState("");
 
-  useEffect(() => {
-    if (availableCategories.categories) {
-      setCategories([...availableCategories.categories]);
+  // Avoid infinite update loops by only updating state when values actually change
+  function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
     }
-  }, [availableCategories.categories]);
+    return true;
+  }
+
+  useEffect(() => {
+    const newCats = availableCategories?.categories || [];
+    if (!arraysEqual(categories, newCats)) {
+      setCategories([...newCats]);
+    }
+  }, [availableCategories?.categories, categories]);
   
   useEffect(() => {
-    if (availableCategories.specific_categories) {
-      setSpecificCategories([...availableCategories.specific_categories]);
+    const newSpecific = availableCategories?.specific_categories || [];
+    if (!arraysEqual(specificCategories, newSpecific)) {
+      setSpecificCategories([...newSpecific]);
     }
-  }, [availableCategories.specific_categories]);
+  }, [availableCategories?.specific_categories, specificCategories]);
 
   const toggleCategory = (cat) => {
     const current = filters.selectedCategories || [];
