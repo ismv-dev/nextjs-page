@@ -25,7 +25,8 @@ export async function GET(request: Request) {
 
   try {
     // 2. Obtener el blob usando el token privado
-    const blob = await get(blobUrl); 
+    // Pass an options object as the second argument to satisfy the API
+    const blob = await get(blobUrl, {}); 
     
     if (!blob) return new Response("No encontrado", { status: 404 });
 
